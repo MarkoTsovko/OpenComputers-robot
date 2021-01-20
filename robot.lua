@@ -1,19 +1,28 @@
-local robot = require("robot")
+robot = require("robot")
 component = require("component")
 geolyzer = component.geolyzer
 
-maxGrowth = 23
+maxGrowthStat = 23 -- Max growth stat 23/31
+maxGainStat = 31 -- Max gain stat 31/31
+maxResistanceStat = 0 -- Max resistance stat 0/31
+
 growth = { 1, 2, 3, 4 }
+gain = { 1, 2, 3, 4 }
+resistance = { 1, 2, 3, 4 }
+
+-- Analysis of maternal crops
 function start()
     for i = 1, 4 do
         goToA(i)
         scan = geolyzer.analyze(0)
         growth[i] = scan['crop:growth']
+        resistance[i] = scan['crop:resistance']
+        gain[i] = scan['crop:gain']
         goToBase(position)
         i = i + 1
     end
 end
-
+-- Replenishment of crops from storage
 function takeCrops()
     if robot.count(1) < 64 then
         robot.turnRight()
@@ -21,7 +30,7 @@ function takeCrops()
         robot.turnLeft()
     end
 end
-
+-- Vault cleaning
 function drop()
     robot.turnLeft()
     for i = 2, 16 do
@@ -31,7 +40,7 @@ function drop()
     robot.turnRight()
     robot.select(1)
 end
-
+-- Change positions robot on site "a"
 function goToA(pos)
     if pos == 1 then
         robot.forward()
@@ -58,7 +67,7 @@ function goToA(pos)
         position = 'a4'
     end
 end
-
+-- Change positions robot on site "b"
 function goToB(pos)
     if pos == 1 then
         robot.forward()
@@ -94,7 +103,7 @@ function goToB(pos)
         position = 'b5'
     end
 end
-
+-- Return robot on base from site "a or b"
 function goToBase(position)
     if position == 'a1' then
         robot.back()
@@ -145,7 +154,7 @@ function goToBase(position)
         robot.back()
     end
 end
-
+-- Check for seeds
 function checkTake(info)
     if component.inventory_controller.getStackInInternalSlot(2) ~= nie then
         local name = component.inventory_controller.getStackInInternalSlot(2)
@@ -154,22 +163,30 @@ function checkTake(info)
         end
     end
 end
-
-function changeGrowth(position, seedGrowth)
+-- Update information about seed
+function changeGrowth(position, seedGrowth, seedGainseed, Resistance)
     if position == 'a1' then
         growth[1] = seedGrowth
+        gain[1] = seedGain
+        resistance[1] = seedResistance
     end
     if position == 'a2' then
         growth[2] = seedGrowth
+        gain[2] = seedGain
+        resistance[2] = seedResistance
     end
     if position == 'a3' then
         growth[3] = seedGrowth
+        gain[3] = seedGain
+        resistance[3] = seedResistance
     end
     if position == 'a4' then
         growth[4] = seedGrowth
+        gain[4] = seedGain
+        resistance[4] = seedResistance
     end
 end
-
+-- Replace maternal seed
 function replace()
     robot.useDown()
     robot.select(2)
@@ -180,47 +197,102 @@ function replace()
     goToBase(position)
     drop()
 end
-
+-- Compare seeds
 function compareSeeds(info)
-    --[[local growth = info['crop:growth']]
+
     seedGrowth = info['crop:growth']
-    --[[local weedex = info['crop:weedex']]
+    seedGain = info['crop:gain']
+    seedResistance = info['crop:resistance']
 
-    min = growth[1]
-    max = min
 
-    -- find min growth a1,a2,a3,a4
-    for i = 1, 4 do
-        if (growth[i] > max) then
-            max = growth[i]
-        end
-        if (growth[i] < min) then
-            min = growth[i]
-        end
-        i = i + 1
-    end
+    function findMinGrowth()
 
-    local minGrowth = min --[[min growth]]
+        minGrowth = growth[1]
+        maxGrowth = minGrowth
 
-    -- find min index growth a1,a2,a3,a4
-    for i = 1, 4 do
-        if (growth[i] == min) then
-            min = i
-        else
+        -- find min growth a1,a2,a3,a4
+
+        for i = 1, 4 do
+            if (growth[i] > maxGrowth) then
+                maxGrowth = growth[i]
+            end
+            if (growth[i] < minGrowth) then
+                minGrowth = growth[i]
+            end
             i = i + 1
         end
+
+        minSeedGrowth = minGrowth --[[min growth]]
+
+        -- find min index growth a1,a2,a3,a4
+
+        for i = 1, 4 do
+            if (growth[i] == minIndexGrowth) then
+                minIndexGrowth = i
+            else
+                i = i + 1
+            end
+        end
     end
 
-    if seedGrowth > minGrowth and seedGrowth <= maxGrowth then
-        goToA(min)
-        print('old:' .. minGrowth .. 'new:' .. seedGrowth)
-        changeGrowth(position, seedGrowth)
-        replace()
-    else
-        drop()
+    function findMinGain()
+
+        minGain = gain[1]
+        maxGain = minGain
+
+        -- find min gain a1,a2,a3,a4
+        for i = 1, 4 do
+            if (gain[i] > maxGain) then
+                maxGain = gain[i]
+            end
+            if (gain[i] < minGain) then
+                minGain = gain[i]
+            end
+            i = i + 1
+        end
+
+        minSeedGain = minGain --[[min gain]]
+
+        -- find min index gain a1,a2,a3,a4
+
+        for i = 1, 4 do
+            if (gain[i] == minIndexGain) then
+                minIndexGain = i
+            else
+                i = i + 1
+            end
+        end
     end
+
+    for i = 1, 4 do
+        if seedGrowth > growth[i] and seedGrowth <= maxGrowthStat and seedGain >= gain[i] and seedGain <= maxGainStat and seedResistance <= maxResistanceStat then
+            goToA(i)
+            print('----' .. ' Pos: a' .. i)
+            print(' Old growth: ' .. growth[i] .. ' New growth: ' .. seedGrowth)
+            print(' Old gain: ' .. gain[i] .. ' New gain: ' .. seedGain)
+            print(' seedResistence: ' .. seedResistance)
+            print('----')
+            changeGrowth(position, seedGrowth, seedGain, seedResistance)
+            replace()
+            break
+        else
+            if seedGain > gain[i] and seedGain <= maxGainStat and seedGrowth >= growth[i] and seedGrowth <= maxGrowthStat and seedResistance <= maxResistanceStat then
+                goToA(i)
+                print('----' .. ' Pos: a' .. i)
+                print(' Old growth: ' .. growth[i] .. ' New growth: ' .. seedGrowth)
+                print(' Old gain: ' .. gain[i] .. ' New gain: ' .. seedGain)
+                print(' seedResistence: ' .. seedResistance)
+                print('----')
+                changeGrowth(position, seedGrowth, seedGain, seedResistance)
+                replace()
+                break
+            end
+        end
+    end
+
+    drop()
 end
-
+-- Remove seed
 function deleteSeed(info)
     robot.useDown()
     component.inventory_controller.equip()
@@ -234,6 +306,7 @@ function deleteSeed(info)
     end
 end
 
+-- Start work (It will be changed later)
 start()
 
 repeat
@@ -250,10 +323,9 @@ repeat
     end
     r = 1
 
-    os.sleep(90)
+    os.sleep(60)
     takeCrops()
 
 until pauseTime > 2
 
-
-
+-- End :)
