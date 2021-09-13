@@ -4,7 +4,7 @@ geolyzer = component.geolyzer
 
 maxGrowthStat = 23 -- Max growth stat 23/31
 maxGainStat = 31 -- Max gain stat 31/31
-maxResistanceStat = 0 -- Max resistance stat 0/31
+maxResistanceStat = 2 -- Max resistance stat 0/31
 
 growth = { 1, 2, 3, 4 }
 gain = { 1, 2, 3, 4 }
@@ -20,6 +20,20 @@ function start()
         gain[i] = scan['crop:gain']
         goToBase(position)
         i = i + 1
+    end
+end
+function analyze()
+    for i = 1, 4 do
+        goToA(i)
+        scan = geolyzer.analyze(0)
+        if scan['crop:name'] == 'weed' then
+            growth[i] = 0
+            resistance[i] = 0
+            gain[i] = 0
+            robot.useDown()
+        end
+        i = i + 1
+        goToBase(position)
     end
 end
 -- Replenishment of crops from storage
@@ -40,125 +54,137 @@ function drop()
     robot.turnRight()
     robot.select(1)
 end
+function forward()
+    if robot.forward() == nie then
+        os.sleep(3)
+        forward()
+    end
+end
+function back()
+    if robot.back() == nie then
+        os.sleep(3)
+        back()
+    end
+end
 -- Change positions robot on site "a"
 function goToA(pos)
     if pos == 1 then
-        robot.forward()
+        forward()
         position = 'a1'
     end
     if pos == 2 then
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
         robot.turnLeft()
-        robot.forward()
+        forward()
         position = 'a2'
     end
     if pos == 3 then
-        robot.forward()
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
+        forward()
         position = 'a3'
     end
     if pos == 4 then
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
         robot.turnRight()
-        robot.forward()
+        forward()
         position = 'a4'
     end
 end
 -- Change positions robot on site "b"
 function goToB(pos)
     if pos == 1 then
-        robot.forward()
+        forward()
         robot.turnLeft()
-        robot.forward()
+        forward()
         position = 'b1'
     end
     if pos == 2 then
-        robot.forward()
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
+        forward()
         robot.turnLeft()
-        robot.forward()
+        forward()
         position = 'b2'
     end
     if pos == 3 then
-        robot.forward()
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
+        forward()
         robot.turnRight()
-        robot.forward()
+        forward()
         position = 'b3'
     end
     if pos == 4 then
-        robot.forward()
+        forward()
         robot.turnRight()
-        robot.forward()
+        forward()
         position = 'b4'
     end
     if pos == 5 then
-        robot.forward()
-        robot.forward()
+        forward()
+        forward()
         position = 'b5'
     end
 end
 -- Return robot on base from site "a or b"
 function goToBase(position)
     if position == 'a1' then
-        robot.back()
+        back()
     end
     if position == 'a2' then
-        robot.back()
+        back()
         robot.turnRight()
-        robot.back()
-        robot.back()
+        back()
+        back()
     end
     if position == 'a3' then
-        robot.back()
-        robot.back()
-        robot.back()
+        back()
+        back()
+        back()
     end
     if position == 'a4' then
-        robot.back()
+        back()
         robot.turnLeft()
-        robot.back()
-        robot.back()
+        back()
+        back()
     end
     if position == 'b1' then
-        robot.back()
+        back()
         robot.turnRight()
-        robot.back()
+        back()
     end
     if position == 'b2' then
-        robot.back()
+        back()
         robot.turnRight()
-        robot.back()
-        robot.back()
-        robot.back()
+        back()
+        back()
+        back()
     end
     if position == 'b3' then
-        robot.back()
+        back()
         robot.turnLeft()
-        robot.back()
-        robot.back()
-        robot.back()
+        back()
+        back()
+        back()
     end
     if position == 'b4' then
-        robot.back()
+        back()
         robot.turnLeft()
-        robot.back()
+        back()
     end
     if position == 'b5' then
-        robot.back()
-        robot.back()
+        back()
+        back()
     end
 end
 -- Check for seeds
 function checkTake(info)
     if component.inventory_controller.getStackInInternalSlot(2) ~= nie then
         local name = component.inventory_controller.getStackInInternalSlot(2)
-        if name['label'] == 'Oak Bonsai Seeds' then
+        if name['label'] == 'Argentia Seeds' then
             compareSeeds(info)
         end
     end
@@ -204,66 +230,6 @@ function compareSeeds(info)
     seedGain = info['crop:gain']
     seedResistance = info['crop:resistance']
 
-
-    function findMinGrowth()
-
-        minGrowth = growth[1]
-        maxGrowth = minGrowth
-
-        -- find min growth a1,a2,a3,a4
-
-        for i = 1, 4 do
-            if (growth[i] > maxGrowth) then
-                maxGrowth = growth[i]
-            end
-            if (growth[i] < minGrowth) then
-                minGrowth = growth[i]
-            end
-            i = i + 1
-        end
-
-        minSeedGrowth = minGrowth --[[min growth]]
-
-        -- find min index growth a1,a2,a3,a4
-
-        for i = 1, 4 do
-            if (growth[i] == minIndexGrowth) then
-                minIndexGrowth = i
-            else
-                i = i + 1
-            end
-        end
-    end
-
-    function findMinGain()
-
-        minGain = gain[1]
-        maxGain = minGain
-
-        -- find min gain a1,a2,a3,a4
-        for i = 1, 4 do
-            if (gain[i] > maxGain) then
-                maxGain = gain[i]
-            end
-            if (gain[i] < minGain) then
-                minGain = gain[i]
-            end
-            i = i + 1
-        end
-
-        minSeedGain = minGain --[[min gain]]
-
-        -- find min index gain a1,a2,a3,a4
-
-        for i = 1, 4 do
-            if (gain[i] == minIndexGain) then
-                minIndexGain = i
-            else
-                i = i + 1
-            end
-        end
-    end
-
     for i = 1, 4 do
         if seedGrowth > growth[i] and seedGrowth <= maxGrowthStat and seedGain >= gain[i] and seedGain <= maxGainStat and seedResistance <= maxResistanceStat then
             goToA(i)
@@ -299,7 +265,7 @@ function deleteSeed(info)
     robot.useDown()
     component.inventory_controller.equip()
     goToBase(position)
-    if info['crop:name'] == 'Oak Bonsai' then
+    if info['crop:name'] == 'Argentia' then
         checkTake(info)
     else
         drop()
@@ -308,24 +274,27 @@ end
 
 -- Start work (It will be changed later)
 start()
-
+pauseTime = 1
 repeat
-    pauseTime = 1
-    for r = 1, 5 do
-        goToB(r)
+    for i = 1, 5 do
+        goToB(i)
         local scanData = geolyzer.analyze(0)
         if scanData['crop:name'] then
             deleteSeed(scanData)
         else
             goToBase(position)
         end
-        r = r + 1
+        i = i + 1
     end
-    r = 1
+    i = 1
 
-    os.sleep(60)
+    os.sleep(15)
     takeCrops()
+    pauseTime = pauseTime + 1
+    if pauseTime == 25 then
+        analyze()
+        pauseTime = 1
+    end
 
-until pauseTime > 2
-
+until pauseTime > 30
 -- End :)
